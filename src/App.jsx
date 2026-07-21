@@ -5,71 +5,12 @@ import {
   ArrowRight, ArrowLeft, Send
 } from 'lucide-react';
 
-// ==========================================
-// MOCK SUPABASE CLIENT (สำหรับการดู Preview ในหน้าเว็บ)
-// ==========================================
-// หมายเหตุ: ระบบจำลองนี้ทำขึ้นเพื่อให้สามารถแสดงผล Preview UI และทดลองใช้งานได้
-// โดยไม่ต้องเชื่อมต่อ API จริง สำหรับการนำไปใช้งาน/Deploy บน Vercel ให้เปลี่ยนไปใช้:
 import { createClient } from '@supabase/supabase-js';
-const supabase = createClient('https://gfuuxwlbgfvtrekdhzft.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmdXV4d2xiZ2Z2dHJla2RoemZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MjE1ODcsImV4cCI6MjEwMDA5NzU4N30.2oew9ulW9E7Sv3DgcJHQVRTMhCjWLa7amdudMRpAuwk');
 
-let mockDB = {
-  users: [{ id: '1', username: 'admin', password_hash: '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918', rank: 'พ.อ.', fname: 'ผู้ดูแล', lname: 'ระบบ', role: 'admin', status: 'approved' }],
-  reports: [],
-  casualties: []
-};
+const SUPABASE_URL = 'https://gfuuxwlbgfvtrekdhzft.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdmdXV4d2xiZ2Z2dHJla2RoemZ0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MjE1ODcsImV4cCI6MjEwMDA5NzU4N30.2oew9ulW9E7Sv3DgcJHQVRTMhCjWLa7amdudMRpAuwk';
 
-const supabase = {
-  from: (table) => {
-    let chain = {
-      data: [...(mockDB[table] || [])],
-      _isCount: false,
-      select: function(q, opts) {
-          if (opts && opts.count) this._isCount = true;
-          return this;
-      },
-      eq: function(key, val) { this.data = this.data.filter(item => item[key] === val); return this; },
-      in: function(key, vals) { this.data = this.data.filter(item => vals.includes(item[key])); return this; },
-      order: function() { this.data = this.data.sort((a,b) => b.created_at - a.created_at); return this; },
-      single: async function() {
-        if (this.data.length === 0) return { error: new Error('ไม่พบข้อมูลผู้ใช้งาน'), data: null };
-        return { error: null, data: this.data[0] };
-      },
-      then: function(resolve) {
-         if (this._isCount) return resolve({ count: this.data.length, data: this.data, error: null });
-         if (table === 'reports') {
-             this.data = this.data.map(report => ({
-                 ...report,
-                 casualties: mockDB.casualties.filter(c => c.report_id === report.id)
-             }));
-         }
-         return resolve({ data: this.data, error: null });
-      },
-      insert: function(payload) {
-        const arr = Array.isArray(payload) ? payload : [payload];
-        const inserted = arr.map(item => ({ id: Math.random().toString(36).substring(7), created_at: Date.now(), ...item }));
-        mockDB[table] = [...(mockDB[table] || []), ...inserted];
-        return {
-            select: function() {
-                return {
-                    single: async () => ({ error: null, data: inserted[0] })
-                }
-            },
-            then: function(resolve) { resolve({ error: null, data: inserted }); }
-        };
-      },
-      update: function(payload) {
-         return {
-             eq: async function(key, val) {
-                 mockDB[table] = mockDB[table].map(item => item[key] === val ? { ...item, ...payload } : item);
-                 return { error: null };
-             }
-         };
-      }
-    };
-    return chain;
-  }
-};
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ฟังก์ชัน Hash Password จำลอง (เหมือนฝั่ง GAS เดิม)
 const hashPassword = async (password) => {
